@@ -49,12 +49,8 @@ plt.scatter(x, y, color='navy', s=30, marker='o', label="training points")
 
 
 
-    <matplotlib.collections.PathCollection at 0x235b03e3780>
+    <matplotlib.collections.PathCollection at 0x265e199b8d0>
 
-
-
-
-![png](index_files/index_4_1.png)
 
 
 
@@ -360,33 +356,69 @@ Practice using the same process above to fit a polynomial model using Lasso regr
 
 
 ```python
-# Your code here
-```
+#WARNING: THIS CODE BLOCK WILL TAKE A LONG TIME (POTENTIALLY HOURS) TO RUN ON YOUR MACHINE AND WILL CONSUME A LOT OF RESOURCES!!!!
 
-
-```python
-#Beginning of solution (Not finished)
-
-#Alpha (regularization strength) of LASSO regression
-lasso_eps = 0.0001
-lasso_nalpha=20
-lasso_iter=5000
 
 # Min and max degree of polynomials features to consider
 degree_min = 2
-degree_max = 8
+degree_max = 5
+
+y = df.SalePrice
+x_feats = [col for col in df.columns if df[col].dtype in [np.int64, np.float64] and col != 'SalePrice']
+print('Number of X features:', len(x_feats))
+
+#Fill Null Values and Normalize
+for col in x_feats:
+    avg = df[col].mean()
+    df[col] = df[col].fillna(value=avg)
+    minimum = df[col].min()
+    maximum = df[col].max()
+    range_ = maximum - minimum
+    df[col] = df[col].map(lambda x: (x-minimum)/range_)
+X = df[x_feats]
 
 # Test/train split
-X_train, X_test, y_train, y_test = train_test_split(df['X'], df['y'])
+X_train, X_test, y_train, y_test = train_test_split(X, y)
 
-# Make a pipeline model with polynomial transformation and LASSO regression with cross-validation, run it for increasing degree of polynomial (complexity of the model)
+# Make a pipeline model with polynomial transformation
+#Currently with basic ridge.
+#Could use and LASSO regression with cross-validation, (included in comments)
 
+degrees = []
+train_errs = []
+test_errs = []
 for degree in range(degree_min,degree_max+1):
     model = make_pipeline(PolynomialFeatures(degree, interaction_only=False),
-                          LassoCV(eps=lasso_eps,n_alphas=lasso_nalpha,max_iter=lasso_iter,normalize=True,cv=5)
+                          Ridge()
                          )
+    #Could replace Ridge() above with a more complicated cross validation method to improve tuning
+    #using a cross validation method will substantially increase runtime
     model.fit(X_train,y_train)
-    test_pred = np.array(model.predict(X_test))
-    RMSE=np.sqrt(np.sum(np.square(test_pred-y_test)))
     test_score = model.score(X_test,y_test)
+    test_errs.append(test_score)
+    
+    train_score = model.score(X_train,y_train)
+    train_errs.append(train_score)
+    
+    degrees.append(degree)
+#Create Plot
+plt.scatter(degrees, train_errs, label='Train RMSE')
+plt.scatter(degrees, test_errs, label='Test RMSE')
+plt.title('Train and Test Errors vs Model Complexity')
+plt.xlabel('Maximum Degree of Polynomial Regression')
+plt.legend()
 ```
+
+    Number of X features: 37
+
+
+
+
+
+    <matplotlib.legend.Legend at 0x2658005fda0>
+
+
+
+
+![png](index_files/index_12_2.png)
+
